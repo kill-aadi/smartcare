@@ -50,6 +50,7 @@ include = [
     "*/queue.py",
     "ai_suggest/*.py",
     "*/mixins.py",
+    "core/*.py",
 ]
 fail_under = 80
 show_missing = true

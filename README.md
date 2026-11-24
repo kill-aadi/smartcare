@@ -3,6 +3,8 @@
 A hospital management system connecting admins, hospitals, doctors, pharmacies and patients — my BSc Computer
 Science final-year project, rebuilt properly and then migrated to Azure.
 
+[![CI](https://github.com/kill-aadi/smartcare/actions/workflows/ci.yml/badge.svg)](https://github.com/kill-aadi/smartcare/actions/workflows/ci.yml)
+
 > 🚧 **Rebuild in progress — milestone 1 of 7.** This README only describes what the code does today.
 
 ## The story
