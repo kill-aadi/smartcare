@@ -37,3 +37,26 @@ def test_login_is_case_insensitive(db, client):
     User.objects.create_user("ana@example.test", password="x-pass-123")
 
     assert client.login(email="ANA@EXAMPLE.TEST", password="x-pass-123")
+
+
+def _user_form(data):
+    from django.forms import modelform_factory
+
+    return modelform_factory(User, fields=["email", "role"])(data=data)
+
+
+def test_form_created_user_email_is_lowercased(db):
+    # dashboard/admin ModelForms don't go through the manager; the model's clean() must normalise
+    form = _user_form({"email": "Mixed@Case.TEST", "role": Role.DOCTOR})
+
+    assert form.is_valid(), form.errors
+    assert form.save().email == "mixed@case.test"
+
+
+def test_case_only_duplicate_shows_readable_form_error(db):
+    User.objects.create_user("ana@example.test", password="x-pass-123")
+
+    form = _user_form({"email": "ANA@Example.test", "role": Role.PATIENT})
+
+    assert not form.is_valid()
+    assert "A user with that email already exists." in str(form.errors)

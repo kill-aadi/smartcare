@@ -31,7 +31,8 @@ milestone 2, but the code path below exists now and is tested by `test_login_is_
    points to `accounts.backends.EmailBackend`.
 3. `EmailBackend.authenticate` looks the user up with `email__iexact`, so case doesn't matter, then checks the
    password hash and that the account is active.
-4. The user was created through `UserManager.create_user`, which stored `ana@example.test`. A second account
+4. The user was stored as `ana@example.test`: `UserManager.create_user` lower-cases emails, and so does
+   `User.clean()`, which every form (dashboards, Django admin) calls. A second account
    `Ana@Example.test` can't exist: the DB constraint `user_email_ci_unique` is a unique index on `LOWER(email)`.
 
 And for the API, when a service later raises `SessionFull("This session is full")` (a `DomainError` subclass with

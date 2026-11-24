@@ -18,7 +18,12 @@ RUN uv sync --frozen --no-install-project
 
 COPY . .
 
-RUN useradd --uid 10001 --create-home app \
+# On Linux, bind-mounted files keep the host owner, so the dev user must share your UID to write
+# migrations and coverage files. Set APP_UID/APP_GID in .env (see .env.example); macOS doesn't need it.
+ARG APP_UID=10001
+ARG APP_GID=10001
+RUN groupadd --gid "$APP_GID" app \
+    && useradd --uid "$APP_UID" --gid "$APP_GID" --create-home app \
     && mkdir -p /app/media \
     && chown -R app /app
 USER app

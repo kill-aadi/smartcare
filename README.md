@@ -42,6 +42,9 @@ cd smartcare
 docker compose up
 ```
 
+On Linux, first copy `.env.example` to `.env` and set `APP_UID`/`APP_GID` to your `id -u`/`id -g`, so the
+container can write to the mounted source folder.
+
 Then open <http://localhost:8000/api/docs/> for the interactive API documentation. No `.env` file is needed; copy
 `.env.example` to `.env` if you want to override the defaults.
 
@@ -67,6 +70,13 @@ build in GitHub Actions.
 ## Architecture decisions
 
 Key decisions are recorded as short ADRs in [`docs/adr/`](docs/adr/README.md).
+
+## How this was built
+
+The SmartCare concept, original design and final-year report are my own work. The original code was lost, so this
+rebuild is AI-assisted (written with Claude from a design I approved) and reviewed milestone by milestone: each
+milestone has a walkthrough in [`docs/walkthroughs/`](docs/walkthroughs/) that I read, questioned and approved
+before merging, so I can explain every part.
 
 ## Licence
 
