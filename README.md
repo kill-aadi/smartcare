@@ -5,7 +5,7 @@ Science final-year project, rebuilt properly and then migrated to Azure.
 
 [![CI](https://github.com/kill-aadi/smartcare/actions/workflows/ci.yml/badge.svg)](https://github.com/kill-aadi/smartcare/actions/workflows/ci.yml)
 
-> 🚧 **Rebuild in progress — milestone 2 of 7.** This README only describes what the code does today.
+> 🚧 **Rebuild in progress — milestone 3 of 7.** This README only describes what the code does today.
 
 ## The story
 
@@ -22,13 +22,17 @@ _Coming in milestone 7._
 | Role | Where | What works today |
 |---|---|---|
 | Admin | Web dashboard | Approve or reject hospital registrations (with reason), view licence proofs, list users |
-| Hospital | Web dashboard | Self-register with licence upload and map coordinates; once approved, add/edit/deactivate its doctors and add pharmacies |
-| Doctor | Web dashboard | Log in (sessions and queue arrive in milestone 3) |
+| Hospital | Web dashboard | Self-register with licence upload and map coordinates; once approved, add/edit/deactivate its doctors, add pharmacies and see its doctors' bookings by date |
+| Doctor | Web dashboard | Create consulting sessions (date, time, fee, capacity); run today's live queue: **Call next**, mark consultation complete or no-show (updates every 5 s) |
 | Pharmacy | Web dashboard | Log in (prescription inbox arrives in milestone 4) |
-| Patient | REST API (Flutter app in milestone 6) | Register, log in with JWT, browse specialisations, doctors and approved hospitals sorted by distance |
+| Patient | REST API (Flutter app in milestone 6) | Register, log in with JWT, browse specialisations, doctors and approved hospitals sorted by distance; see a doctor's sessions and seats left; book (atomic, sequential token numbers), cancel, pay (simulated) and follow the live queue ("token 5 · now serving 2 · ~30 min") |
 
 Pending or rejected hospitals see a status page instead of their dashboard, and nothing of theirs is visible to
 patients.
+
+Payments are **simulated**: "Pay" records a `SIM-…` reference and marks the booking paid; no money moves
+([ADR 0008](docs/adr/0008-simulated-payments.md)). Waiting times are estimates (tokens to go × the doctor's
+average minutes per patient), never promises.
 
 ## Tech stack
 
@@ -60,6 +64,9 @@ In a second terminal, load the demo data:
 docker compose exec web python manage.py seed_demo          # add --flush to recreate it
 ```
 
+The demo creates sessions for today (08:00–15:00 and 15:00–22:00 IST), tomorrow and the day after, with
+some of today's seats already booked. Reseed with `--flush` on another day to move them to the new dates.
+
 Then open <http://localhost:8000/> for the dashboards and <http://localhost:8000/api/docs/> for the interactive API
 documentation. No `.env` file is needed; copy `.env.example` to `.env` if you want to override the defaults.
 
@@ -73,9 +80,10 @@ reserved `.test` domain. Every account's password is `demo-pass-123`.
 | Admin | `admin@smartcare.test` | Also works for `/django-admin/` |
 | Hospital | `hospital@smartcare.test` | Riverside Demo Hospital (approved) |
 | Hospital | `pending-hospital@smartcare.test` | Awaiting approval |
-| Doctor | `doctor@smartcare.test` | General Physician at Riverside |
+| Hospital | `rejected-hospital@smartcare.test` | Rejected, with a reason |
+| Doctor | `doctor@smartcare.test` | General Physician at Riverside. **Today** shows a live queue: now serving 2 of 6 |
 | Pharmacy | `pharmacy@smartcare.test` | Riverside's pharmacy |
-| Patient | `patient@smartcare.test` | Use with the API (`POST /api/auth/token/`) |
+| Patient | `patient@smartcare.test` | Use with the API (`POST /api/auth/token/`). Holds token 5 in `doctor@`'s queue today |
 
 ## What I improved since uni
 
