@@ -1,0 +1,43 @@
+# Local development: `docker compose up` (no .env needed; copy .env.example to .env to override).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: smartcare
+      POSTGRES_PASSWORD: smartcare
+      POSTGRES_DB: smartcare
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published port: only the web container talks to Postgres, so a local Postgres on 5432 can't clash
+    # and the database isn't reachable from your network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcare -d smartcare"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  web:
+    build:
+      context: ./backend
+      args:
+        APP_UID: ${APP_UID:-10001}
+        APP_GID: ${APP_GID:-10001}
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DEBUG: "true"
+      DATABASE_URL: ${DATABASE_URL:-postgres://smartcare:smartcare@db:5432/smartcare}
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+      - media:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  media:

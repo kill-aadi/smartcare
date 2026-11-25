@@ -1,0 +1,37 @@
+# Secrets and local config
+.env
+*.jks
+*.keystore
+key.properties
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Django
+media/
+staticfiles/
+
+# ML
+ml/data/raw/
+
+# Flutter / Dart
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Old 17 Nov skeleton: folded in at milestones 8–9, never committed as-is
+/api/
+/infra/
+
+# Tooling scratch
+.superpowers/
+.DS_Store
+.idea/
