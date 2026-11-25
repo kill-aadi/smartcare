@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "hospitals",
     "doctors",
     "pharmacy",
+    "dashboards",
 ]
 
 MIDDLEWARE = [
@@ -65,6 +66,9 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = "accounts.User"
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboards:root"
+LOGOUT_REDIRECT_URL = "login"
 AUTHENTICATION_BACKENDS = ["accounts.backends.EmailBackend"]
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -88,6 +92,8 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+MESSAGE_TAGS = {40: "danger"}  # messages.ERROR -> Bootstrap's "alert-danger"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

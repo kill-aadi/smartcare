@@ -1,0 +1,36 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SmartCare{% endblock %} · SmartCare</title>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-5.3.9.min.css' %}">
+  <script src="{% static 'vendor/htmx-2.0.11.min.js' %}" defer></script>
+  <script src="{% static 'vendor/bootstrap-5.3.9.bundle.min.js' %}" defer></script>
+</head>
+<body class="bg-light" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <nav class="navbar navbar-expand bg-primary navbar-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="{% url 'home' %}">SmartCare</a>
+      {% if user.is_authenticated %}
+        <div class="navbar-nav me-auto">{% block nav %}{% endblock %}</div>
+        <span class="navbar-text text-white me-3">
+          {{ user.email }} <span class="badge text-bg-light text-capitalize">{{ user.role }}</span>
+        </span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+          <button class="btn btn-sm btn-outline-light">Log out</button>
+        </form>
+      {% endif %}
+    </div>
+  </nav>
+  <main class="container pb-5">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

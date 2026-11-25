@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ hospital.name }}{% endblock %}
+{% block nav %}{% include "dashboards/admin/_nav.html" %}{% endblock %}
+{% block content %}
+<a href="{% url 'dashboards:admin-hospitals' %}" class="small">&larr; All hospitals</a>
+<h1 class="h3 mt-2">{{ hospital.name }} <span class="badge text-bg-secondary">{{ hospital.get_approval_status_display }}</span></h1>
+<div class="row g-4">
+  <div class="col-md-7">
+    <dl class="row bg-white p-3 shadow-sm rounded">
+      <dt class="col-sm-4">Place</dt><dd class="col-sm-8">{{ hospital.place }}</dd>
+      <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">{{ hospital.phone }}</dd>
+      <dt class="col-sm-4">Email</dt><dd class="col-sm-8">{{ hospital.email }}</dd>
+      <dt class="col-sm-4">Location</dt>
+      <dd class="col-sm-8"><a href="https://www.google.com/maps?q={{ hospital.latitude }},{{ hospital.longitude }}" target="_blank" rel="noopener">{{ hospital.latitude }}, {{ hospital.longitude }}</a></dd>
+      <dt class="col-sm-4">Licence</dt>
+      <dd class="col-sm-8"><a href="{% url 'dashboards:admin-hospital-licence' hospital.pk %}" target="_blank">Open licence proof</a></dd>
+      {% if hospital.rejection_reason %}<dt class="col-sm-4">Rejection reason</dt><dd class="col-sm-8">{{ hospital.rejection_reason }}</dd>{% endif %}
+    </dl>
+  </div>
+  <div class="col-md-5">
+    {% if hospital.approval_status != 'approved' %}
+      <form method="post" class="mb-3">{% csrf_token %}
+        <button name="action" value="approve" class="btn btn-success w-100">Approve</button>
+      </form>
+    {% endif %}
+    {% if hospital.approval_status == 'pending' %}
+      <form method="post" class="card card-body shadow-sm">{% csrf_token %}
+        <label class="form-label" for="reason">Reason for rejecting</label>
+        <textarea name="reason" id="reason" class="form-control mb-2" rows="3"></textarea>
+        <button name="action" value="reject" class="btn btn-outline-danger">Reject</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

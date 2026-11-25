@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="h3">{% if hospital %}{{ hospital.name }}{% else %}Welcome{% endif %}</h1>
+<p class="text-secondary">The pharmacy dashboard fills in over the next milestones.</p>
+{% endblock %}

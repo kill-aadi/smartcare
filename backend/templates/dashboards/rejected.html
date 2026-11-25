@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Registration rejected{% endblock %}
+{% block content %}
+<div class="card card-body shadow-sm border-danger">
+  <h1 class="h4">{{ hospital.name }}'s registration was rejected</h1>
+  <p><strong>Reason:</strong> {{ hospital.rejection_reason }}</p>
+  <p class="mb-0">If you think this is a mistake, contact the SmartCare admin.</p>
+</div>
+{% endblock %}
