@@ -1,10 +1,10 @@
 from pathlib import Path
 
 from django import forms
-from django.contrib.auth.password_validation import validate_password
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from accounts.models import DUPLICATE_EMAIL_MESSAGE, User
+from accounts.forms import NewAccountFieldsMixin
+from core.forms import BootstrapFormMixin
 from hospitals.models import Hospital
 
 LICENCE_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
@@ -18,12 +18,14 @@ def validate_licence_file(upload) -> None:
         raise forms.ValidationError("File too large (max 5 MB).")
 
 
-class HospitalRegistrationForm(forms.ModelForm):
+def validate_photo_size(upload) -> None:
+    if upload and upload.size > MAX_UPLOAD_BYTES:
+        raise forms.ValidationError("File too large (max 5 MB).")
+
+
+class HospitalRegistrationForm(BootstrapFormMixin, NewAccountFieldsMixin, forms.ModelForm):
     """Public sign-up form for hospitals. The view passes cleaned_data to register_hospital()."""
 
-    email = forms.EmailField(help_text="You'll use this to log in.")
-    password1 = forms.CharField(label="Password", widget=forms.PasswordInput)
-    password2 = forms.CharField(label="Confirm password", widget=forms.PasswordInput)
     latitude = forms.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -38,37 +40,13 @@ class HospitalRegistrationForm(forms.ModelForm):
     licence_proof = forms.FileField(
         validators=[validate_licence_file], help_text="PDF, JPG or PNG, up to 5 MB."
     )
-    photo = forms.ImageField(required=False)
+    photo = forms.ImageField(required=False, validators=[validate_photo_size])
 
     class Meta:
         model = Hospital
         fields = ["name", "place", "phone", "latitude", "longitude", "licence_proof", "photo"]
 
-    def clean_email(self):
-        email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError(DUPLICATE_EMAIL_MESSAGE)
-        return email
-
-    def clean_photo(self):
-        photo = self.cleaned_data.get("photo")
-        if photo and photo.size > MAX_UPLOAD_BYTES:
-            raise forms.ValidationError("File too large (max 5 MB).")
-        return photo
-
-    def clean(self):
-        cleaned = super().clean()
-        p1, p2 = cleaned.get("password1"), cleaned.get("password2")
-        if p1 and p2 and p1 != p2:
-            self.add_error("password2", "The two passwords don't match.")
-        elif p2:
-            try:
-                validate_password(p2, User(email=cleaned.get("email", "")))
-            except forms.ValidationError as error:
-                self.add_error("password2", error)
-        return cleaned
-
     def _post_clean(self):
-        # The Hospital instance has no user yet; register_hospital() creates both. Skip model
-        # validation here so the missing user doesn't produce a confusing error.
+        # The Hospital has no user until register_hospital() creates both, so skip model
+        # validation here; the fields above already carry every rule.
         pass

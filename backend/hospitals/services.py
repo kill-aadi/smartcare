@@ -16,6 +16,17 @@ class ReasonRequired(DomainError):
     code = "reason_required"
 
 
+class HospitalNotApproved(DomainError):
+    code = "hospital_not_approved"
+    status = 403
+
+
+def require_approved(hospital: Hospital) -> None:
+    """Staff accounts (doctors, pharmacies) can only be added once the hospital is approved."""
+    if hospital.approval_status != ApprovalStatus.APPROVED:
+        raise HospitalNotApproved("Your hospital must be approved before you can add staff.")
+
+
 # Which status a hospital may move to from its current one.
 _ALLOWED = {
     ApprovalStatus.APPROVED: {ApprovalStatus.PENDING, ApprovalStatus.REJECTED},
