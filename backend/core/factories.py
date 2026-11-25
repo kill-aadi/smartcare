@@ -8,7 +8,7 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from accounts.models import Gender, PatientProfile, Role, User
-from bookings.models import ConsultingSession
+from bookings.models import Booking, ConsultingSession
 from doctors.models import Doctor, Specialization
 from hospitals.models import ApprovalStatus, Hospital
 from pharmacy.models import Pharmacy
@@ -91,6 +91,17 @@ class SessionFactory(factory.django.DjangoModelFactory):
     end_time = dt.time(12, 0)
     fee = Decimal("300.00")
     capacity = 20
+
+
+class BookingFactory(factory.django.DjangoModelFactory):
+    """A booking created directly (bypassing book_session) for queue and payment tests."""
+
+    class Meta:
+        model = Booking
+
+    session = factory.SubFactory(SessionFactory)
+    patient = factory.LazyFunction(lambda: PatientFactory())
+    token_no = factory.Sequence(lambda n: n + 1)
 
 
 class PatientProfileFactory(factory.django.DjangoModelFactory):
