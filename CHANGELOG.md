@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Consulting sessions: doctors add sessions (no overlaps, never in the past) on the dashboard.
+- Booking with atomic, sequential token numbers per session (`select_for_update`); capacity, one active booking
+  per patient per session, tokens never reused after a cancellation. Concurrency test with 10 threads.
+- Live queue: doctor's Today page with Call next, mark complete and no-show, polled every 5 s with HTMX.
+- Simulated payments (`SIM-…` references, double tap safe) and ADR 0008.
+- Patient booking API: doctor sessions with seats left, book, list, detail, cancel, pay and queue status.
+- Hospital bookings page (by date).
+- `seed_demo` adds sessions for three days and a live demo queue for `doctor@` / `patient@`.
 - Hospital, doctor, specialisation (12 seeded), pharmacy and patient profile models.
 - Hospital self-registration with licence upload (PDF/JPG/PNG, max 5 MB) and admin approve/reject with reason.
 - Web dashboards: email login, role-based routing, pending/rejected pages, admin hospital review and user list.

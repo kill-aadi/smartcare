@@ -1,0 +1,33 @@
+{# Polled every 5 s; every button swaps this whole card with the server's fresh copy. #}
+<div class="card shadow-sm" id="queue-{{ session.pk }}"
+     hx-get="{% url 'dashboards:doctor-queue' session.pk %}" hx-trigger="every 5s" hx-swap="outerHTML">
+  <div class="card-header d-flex justify-content-between">
+    <span>{{ session.start_time|time:"H:i" }}–{{ session.end_time|time:"H:i" }}</span>
+    <span class="text-secondary">{{ waiting_count }} waiting</span>
+  </div>
+  <div class="card-body">
+    {% if error %}<div class="alert alert-danger py-2">{{ error }}</div>{% endif %}
+    <p class="display-6 mb-1">Now serving {{ session.current_token }}</p>
+    {% if serving %}
+      <p class="text-secondary mb-2">
+        {{ serving.patient.patient_profile.name }} · <span class="text-capitalize">{{ serving.get_status_display }}</span>
+        {% if serving.description %}· “{{ serving.description }}”{% endif %}
+      </p>
+      {% if serving.status == "booked" %}
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-sm btn-success" hx-post="{% url 'dashboards:doctor-booking-complete' serving.pk %}"
+                  hx-target="#queue-{{ session.pk }}" hx-swap="outerHTML">Mark consultation complete</button>
+          <button class="btn btn-sm btn-outline-secondary" hx-post="{% url 'dashboards:doctor-booking-no-show' serving.pk %}"
+                  hx-target="#queue-{{ session.pk }}" hx-swap="outerHTML">No-show</button>
+        </div>
+      {% endif %}
+    {% endif %}
+    <p class="mb-1 small text-secondary">Next up</p>
+    <ul class="list-inline">
+      {% for booking in waiting %}<li class="list-inline-item badge text-bg-light border fs-6">{{ booking.token_no }}</li>
+      {% empty %}<li class="list-inline-item text-secondary">Nobody waiting</li>{% endfor %}
+    </ul>
+    <button class="btn btn-primary" hx-post="{% url 'dashboards:doctor-call-next' session.pk %}"
+            hx-target="#queue-{{ session.pk }}" hx-swap="outerHTML">Call next</button>
+  </div>
+</div>
