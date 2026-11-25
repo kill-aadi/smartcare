@@ -11,7 +11,10 @@ env = environ.Env()
 environ.Env.read_env(BASE_DIR.parent / ".env", overwrite=False)  # optional file
 
 DEBUG = env.bool("DEBUG", default=False)
-SECRET_KEY = env("SECRET_KEY", default="dev-only-insecure-key" if DEBUG else environ.Env.NOTSET)
+SECRET_KEY = env(
+    "SECRET_KEY",
+    default="dev-only-insecure-key-never-use-in-production" if DEBUG else environ.Env.NOTSET,
+)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "10.0.2.2"])
 
 INSTALLED_APPS = [

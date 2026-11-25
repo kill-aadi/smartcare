@@ -31,6 +31,7 @@ urlpatterns = [
     path("register/hospital/", HospitalRegisterView.as_view(), name="hospital-register"),
     path("dashboard/", include("dashboards.urls")),
     path("django-admin/", admin.site.urls),
+    path("api/", include("config.api_urls")),
     path("api/schema/", SpectacularAPIView.as_view(permission_classes=[AllowAny]), name="schema"),
     path(
         "api/docs/",
