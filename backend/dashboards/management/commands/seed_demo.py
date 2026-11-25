@@ -4,6 +4,7 @@ Every account uses an @smartcare.test email (a reserved test domain) and the pas
 Hospital names all contain "Demo" so nobody mistakes them for real hospitals.
 """
 
+import datetime as dt
 import random
 from dataclasses import dataclass
 from decimal import Decimal
@@ -16,10 +17,12 @@ from django.utils import timezone
 from faker import Faker
 
 from accounts.models import Gender, PatientProfile, Role, User
+from bookings.models import Booking, BookingStatus, ConsultingSession
 from doctors.models import Doctor, Specialization
 from doctors.services import create_doctor
 from hospitals.models import ApprovalStatus, Hospital
 from hospitals.services import register_hospital
+from payments.services import pay_booking
 from pharmacy.services import create_pharmacy
 
 DEMO_DOMAIN = "@smartcare.test"
@@ -78,9 +81,26 @@ DOCTOR_PLAN = [
 ]
 QUALIFICATIONS = {"General Physician": "MBBS", "General Surgery": "MBBS, MS"}
 
+COMPLAINTS = [
+    "",
+    "Fever and body ache for three days",
+    "Follow-up visit",
+    "Dry cough at night",
+    "Skin rash on the arms",
+    "Headache since last week",
+    "Knee pain when climbing stairs",
+]
+
+# Today is split into two sessions so a demo queue is open at any hour from 08:00 to 22:00 IST.
+TODAY_SLOTS = [(dt.time(8), dt.time(15)), (dt.time(15), dt.time(22))]
+LATER_SLOTS = [(dt.time(9), dt.time(13)), (dt.time(14), dt.time(18))]
+FEES = [Decimal("200"), Decimal("300"), Decimal("400"), Decimal("500")]
+DEMO_QUEUE_SIZE = 6  # doctor@'s live session: tokens 1-6, now serving 2, patient@ holds 5
+DEMO_PATIENT_TOKEN = 5
+
 
 class Command(BaseCommand):
-    help = "Create fictional demo data (hospitals, doctors, pharmacies, patients)."
+    help = "Create fictional demo data (hospitals, doctors, pharmacies, patients, bookings)."
 
     def add_arguments(self, parser):
         parser.add_argument("--flush", action="store_true", help="Delete demo data and reseed.")
@@ -106,6 +126,7 @@ class Command(BaseCommand):
         self.fake.seed_instance(SEED)
 
         self._seed_people()
+        self._seed_sessions_and_bookings()
         self.stdout.write(self.style.SUCCESS("Demo data created. Logins use " + DEMO_PASSWORD))
 
     # ---- steps (later milestones add _seed_sessions(), _seed_prescriptions(), ...) -------------
@@ -176,6 +197,67 @@ class Command(BaseCommand):
             f"  {len(approved)} approved hospitals, {Doctor.objects.count()} doctors, "
             f"{len(approved)} pharmacies, 10 patients"
         )
+
+    def _seed_sessions_and_bookings(self) -> None:
+        today = timezone.localdate()
+        demo_patient = User.objects.get(email="patient@smartcare.test")
+        others = list(User.objects.filter(role=Role.PATIENT).exclude(pk=demo_patient.pk))
+
+        for i, doctor in enumerate(Doctor.objects.order_by("pk")):
+            fee = random.choice(FEES)
+            todays = [self._session(doctor, today, start, end, fee) for start, end in TODAY_SLOTS]
+            for days in (1, 2):
+                start, end = LATER_SLOTS[(i + days) % 2]
+                self._session(doctor, today + dt.timedelta(days=days), start, end, fee)
+
+            if doctor.user.email == "doctor@smartcare.test":
+                self._seed_demo_queue(self.live_session(todays), demo_patient, others)
+            else:
+                for session in todays:
+                    patients = random.sample(others, random.randint(0, 4))
+                    self._book(session, patients, paid=[random.random() < 0.6 for _ in patients])
+
+        self.stdout.write(
+            f"  {ConsultingSession.objects.count()} sessions, {Booking.objects.count()} bookings; "
+            f"patient@ holds token {DEMO_PATIENT_TOKEN} in doctor@'s queue"
+        )
+
+    @staticmethod
+    def live_session(sessions: list[ConsultingSession]) -> ConsultingSession:
+        """Today's first session that hasn't ended, else the last one (seeded after 22:00)."""
+        return next((s for s in sessions if not s.is_past()), sessions[-1])
+
+    def _seed_demo_queue(self, session, demo_patient, others) -> None:
+        patients = random.sample(others, DEMO_QUEUE_SIZE - 1)
+        patients.insert(DEMO_PATIENT_TOKEN - 1, demo_patient)
+        bookings = self._book(session, patients, paid=[True, True, False, True, True, False])
+        bookings[0].status = BookingStatus.COMPLETED  # token 1 seen, token 2 with the doctor now
+        bookings[0].save(update_fields=["status"])
+        session.current_token = 2
+        session.save(update_fields=["current_token"])
+
+    @staticmethod
+    def _session(doctor, date, start, end, fee) -> ConsultingSession:
+        # Created directly: create_session() refuses sessions already over (a seed run at 16:00
+        # must still create the 08:00-15:00 one).
+        return ConsultingSession.objects.create(
+            doctor=doctor, date=date, start_time=start, end_time=end, fee=fee, capacity=20
+        )
+
+    def _book(self, session, patients, paid) -> list[Booking]:
+        # Direct create for the same reason; tokens are sequential exactly as book_session() would.
+        bookings = []
+        for token, (patient, is_paid) in enumerate(zip(patients, paid, strict=True), start=1):
+            booking = Booking.objects.create(
+                session=session,
+                patient=patient,
+                token_no=token,
+                description=random.choice(COMPLAINTS),
+            )
+            if is_paid:
+                pay_booking(patient, booking)
+            bookings.append(booking)
+        return bookings
 
     @staticmethod
     def _set_status(hospital: Hospital, status: str, admin: User) -> None:
