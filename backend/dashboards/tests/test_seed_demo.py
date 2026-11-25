@@ -107,3 +107,25 @@ def test_flush_keeps_non_demo_users(db):
     seed("--flush")
 
     assert User.objects.filter(email="real.admin@example.test").exists()
+
+
+def test_flush_removes_staff_added_to_demo_hospitals(db):
+    from doctors.services import create_doctor
+
+    seed()
+    hospital = Hospital.objects.get(user__email="hospital@smartcare.test")
+    create_doctor(
+        hospital,
+        email="me@example.test",
+        password="a-long-pass-123",
+        name="Dr Added",
+        specialization=Specialization.objects.first(),
+        qualification="MBBS",
+        experience_years=1,
+        gender="female",
+    )
+
+    seed("--flush")
+
+    assert not User.objects.filter(email="me@example.test").exists()
+    assert not User.objects.filter(role=Role.DOCTOR, doctor__isnull=True).exists()

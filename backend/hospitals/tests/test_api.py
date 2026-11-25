@@ -119,3 +119,14 @@ def test_staff_cannot_use_catalogue(db):
 
 def test_anonymous_gets_401(db):
     assert APIClient().get("/api/hospitals/").status_code == 401
+
+
+def test_nearest_hospital_is_found_even_beyond_the_first_50_by_name(api):
+    for i in range(55):
+        _at("12.000000", "77.000000", name=f"A Far {i:02d}")  # ~170 km away, sort first by name
+    _at("10.528000", "76.215000", name="Z Nearest")
+
+    response = api.get("/api/hospitals/", {"lat": THRISSUR[0], "lng": THRISSUR[1]})
+
+    assert len(response.data) == 50
+    assert response.data[0]["name"] == "Z Nearest"

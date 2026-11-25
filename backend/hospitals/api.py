@@ -36,18 +36,23 @@ class HospitalListView(ListAPIView):
         search = self.request.query_params.get("search", "").strip()
         if search:
             hospitals = hospitals.filter(Q(name__icontains=search) | Q(place__icontains=search))
-        hospitals = list(hospitals[:MAX_RESULTS])
-
         here = self.location.validated_data
-        if here:
-            # Plain Python over at most 50 rows: easy to explain, no PostGIS needed.
-            for h in hospitals:
-                h.distance_km = haversine_km(
-                    here["lat"], here["lng"], float(h.latitude), float(h.longitude)
-                )
-                h.straight_line_minutes = straight_line_minutes(h.distance_km)
-            hospitals.sort(key=lambda h: h.distance_km)
-        return hospitals
+        if not here:
+            return list(hospitals[:MAX_RESULTS])
+
+        # Distance for every matching hospital from just (id, lat, lng), then load the nearest 50.
+        # Plain Python: easy to explain, fine for thousands of rows, no PostGIS needed.
+        distances = {
+            pk: haversine_km(here["lat"], here["lng"], float(lat), float(lng))
+            for pk, lat, lng in hospitals.values_list("pk", "latitude", "longitude")
+        }
+        nearest = sorted(distances, key=distances.get)[:MAX_RESULTS]
+        result = list(hospitals.filter(pk__in=nearest))
+        for h in result:
+            h.distance_km = distances[h.pk]
+            h.straight_line_minutes = straight_line_minutes(h.distance_km)
+        result.sort(key=lambda h: h.distance_km)
+        return result
 
 
 class HospitalDetailView(RetrieveAPIView):

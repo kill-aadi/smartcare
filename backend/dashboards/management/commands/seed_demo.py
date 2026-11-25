@@ -11,6 +11,7 @@ from decimal import Decimal
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from faker import Faker
 
@@ -87,7 +88,14 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, flush=False, **options):
         if flush:
-            deleted, _ = User.objects.filter(email__endswith=DEMO_DOMAIN).delete()
+            # Demo accounts, plus any staff someone added to a demo hospital while trying it out
+            # (otherwise their logins would survive without a doctor/pharmacy profile).
+            demo_users = User.objects.filter(
+                Q(email__endswith=DEMO_DOMAIN)
+                | Q(doctor__hospital__user__email__endswith=DEMO_DOMAIN)
+                | Q(pharmacy__hospital__user__email__endswith=DEMO_DOMAIN)
+            )
+            deleted, _ = demo_users.delete()
             self.stdout.write(f"Removed existing demo data ({deleted} rows).")
         elif User.objects.filter(email=f"admin{DEMO_DOMAIN}").exists():
             self.stdout.write("Demo data already exists. Use --flush to recreate it.")

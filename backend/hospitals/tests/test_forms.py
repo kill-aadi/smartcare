@@ -55,7 +55,16 @@ def test_licence_is_required(db):
 
 
 @pytest.mark.parametrize(
-    "field,value", [("latitude", "90.5"), ("latitude", "-91"), ("longitude", "180.1")]
+    "field,value",
+    [
+        ("latitude", "90.5"),
+        ("latitude", "-91"),
+        ("longitude", "180.1"),
+        ("latitude", "abc"),
+        ("latitude", "nan"),
+        ("longitude", "inf"),
+        ("longitude", ""),
+    ],
 )
 def test_coordinates_out_of_range(db, field, value):
     form = _form(**{field: value})
@@ -80,3 +89,20 @@ def test_email_already_used_any_case(db):
     form = _form(email="NEW@Care.test")
 
     assert form.errors["email"] == ["A user with that email already exists."]
+
+
+def test_full_precision_google_maps_coordinates_are_rounded(db):
+    # Google Maps "copy coordinates" gives ~15 decimal places; the form must accept them.
+    form = _form(latitude="10.527642345678912", longitude="76.214435123456789")
+
+    assert form.is_valid(), form.errors
+    assert str(form.cleaned_data["latitude"]) == "10.527642"
+    assert str(form.cleaned_data["longitude"]) == "76.214435"
+
+
+def test_pasted_lat_lng_pair_in_latitude_field_is_split(db):
+    form = _form(latitude="10.527642345678912, 76.214435123456789", longitude="")
+
+    assert form.is_valid(), form.errors
+    assert str(form.cleaned_data["latitude"]) == "10.527642"
+    assert str(form.cleaned_data["longitude"]) == "76.214435"
