@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block nav %}{% include "dashboards/admin/_nav.html" %}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Admin overview</h1>
+<div class="card card-body shadow-sm" style="max-width: 22rem">
+  <div class="text-secondary">Hospitals awaiting approval</div>
+  <div class="display-6">{{ pending_count }}</div>
+  <a href="{% url 'dashboards:admin-hospitals' %}?status=pending">Review them</a>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Doctors{% endblock %}
+{% block nav %}{% include "dashboards/hospital/_nav.html" %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Doctors</h1>
+  <a class="btn btn-primary" href="{% url 'dashboards:hospital-doctor-new' %}">Add doctor</a>
+</div>
+<table class="table bg-white shadow-sm align-middle">
+  <thead><tr><th>Name</th><th>Specialisation</th><th>Login</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for doctor in doctors %}
+    <tr>
+      <td><a href="{% url 'dashboards:hospital-doctor-edit' doctor.pk %}">{{ doctor.name }}</a></td>
+      <td>{{ doctor.specialization }}</td>
+      <td>{{ doctor.user.email }}</td>
+      <td>{% if doctor.user.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}</td>
+      <td class="text-end">
+        <form method="post" action="{% url 'dashboards:hospital-doctor-active' doctor.pk %}">{% csrf_token %}
+          <button class="btn btn-sm btn-outline-secondary">{% if doctor.user.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+        </form>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="text-secondary">No doctors yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

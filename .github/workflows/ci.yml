@@ -29,7 +29,7 @@ jobs:
           --health-interval 2s --health-timeout 3s --health-retries 30
     env:
       DATABASE_URL: postgres://smartcare:smartcare@localhost:5432/smartcare
-      SECRET_KEY: ci-not-secret
+      SECRET_KEY: ci-only-not-secret-long-enough-for-hs256
       DEBUG: "false"
     defaults:
       run:

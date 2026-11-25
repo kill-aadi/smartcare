@@ -13,6 +13,12 @@ class Role(models.TextChoices):
     PATIENT = "patient", "Patient"
 
 
+class Gender(models.TextChoices):
+    FEMALE = "female", "Female"
+    MALE = "male", "Male"
+    OTHER = "other", "Other"
+
+
 DUPLICATE_EMAIL_MESSAGE = "A user with that email already exists."
 
 
@@ -50,3 +56,17 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
+
+
+class PatientProfile(models.Model):
+    """Extra details for a patient; staff roles keep theirs on Hospital, Doctor or Pharmacy."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patient_profile")
+    name = models.CharField(max_length=120)
+    phone = models.CharField(max_length=30)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=Gender.choices)
+    place = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return self.name

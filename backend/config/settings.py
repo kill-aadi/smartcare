@@ -11,7 +11,10 @@ env = environ.Env()
 environ.Env.read_env(BASE_DIR.parent / ".env", overwrite=False)  # optional file
 
 DEBUG = env.bool("DEBUG", default=False)
-SECRET_KEY = env("SECRET_KEY", default="dev-only-insecure-key" if DEBUG else environ.Env.NOTSET)
+SECRET_KEY = env(
+    "SECRET_KEY",
+    default="dev-only-insecure-key-never-use-in-production" if DEBUG else environ.Env.NOTSET,
+)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "10.0.2.2"])
 
 INSTALLED_APPS = [
@@ -26,6 +29,10 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "core",
     "accounts",
+    "hospitals",
+    "doctors",
+    "pharmacy",
+    "dashboards",
 ]
 
 MIDDLEWARE = [
@@ -62,6 +69,9 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = "accounts.User"
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboards:root"
+LOGOUT_REDIRECT_URL = "login"
 AUTHENTICATION_BACKENDS = ["accounts.backends.EmailBackend"]
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -85,6 +95,8 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+MESSAGE_TAGS = {40: "danger"}  # messages.ERROR -> Bootstrap's "alert-danger"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm"><div class="card-body p-4">
+      <h1 class="h4 mb-3">Log in to SmartCare</h1>
+      <p class="text-secondary small">For admins, hospitals, doctors and pharmacies. Patients use the SmartCare app.</p>
+      {% if form.non_field_errors %}<div class="alert alert-danger">Please enter a correct email and password.</div>{% endif %}
+      <form method="post">{% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label" for="id_username">Email</label>
+          <input type="email" name="username" id="id_username" class="form-control" autofocus required
+                 value="{{ form.username.value|default:'' }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="id_password">Password</label>
+          <input type="password" name="password" id="id_password" class="form-control" required>
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button class="btn btn-primary w-100">Log in</button>
+      </form>
+      <hr>
+      <p class="mb-0 small">Running a hospital? <a href="{% url 'hospital-register' %}">Register it here</a>.</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

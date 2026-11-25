@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Awaiting approval{% endblock %}
+{% block content %}
+<div class="card card-body shadow-sm">
+  <h1 class="h4">{{ hospital.name }} is awaiting approval</h1>
+  <p class="mb-0">An admin is checking your licence. You'll get an email when it's reviewed; until then your
+    hospital isn't visible to patients and you can't add doctors or pharmacies.</p>
+</div>
+{% endblock %}
