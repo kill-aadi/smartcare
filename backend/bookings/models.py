@@ -1,5 +1,6 @@
 import datetime as dt
 
+from django.conf import settings
 from django.db import models
 from django.db.models import F, Q
 from django.utils import timezone
@@ -43,3 +44,51 @@ class ConsultingSession(models.Model):
 
     def is_past(self, now: dt.datetime | None = None) -> bool:
         return self.ends_at() <= (now or timezone.now())
+
+
+class BookingStatus(models.TextChoices):
+    BOOKED = "booked", "Booked"
+    CANCELLED = "cancelled", "Cancelled"
+    COMPLETED = "completed", "Completed"
+    NO_SHOW = "no_show", "No-show"
+
+
+class PaymentStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    PAID = "paid", "Paid"
+
+
+class Booking(models.Model):
+    """A patient's place in a session. ``token_no`` is their number in the queue."""
+
+    session = models.ForeignKey(
+        ConsultingSession, on_delete=models.CASCADE, related_name="bookings"
+    )
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="bookings"
+    )
+    description = models.CharField(max_length=500, blank=True)
+    token_no = models.PositiveSmallIntegerField()
+    payment_status = models.CharField(
+        max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
+    )
+    status = models.CharField(
+        max_length=10, choices=BookingStatus.choices, default=BookingStatus.BOOKED
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["session", "token_no"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["session", "token_no"], name="unique_token_per_session"
+            ),
+            models.UniqueConstraint(
+                fields=["session", "patient"],
+                condition=~Q(status="cancelled"),
+                name="one_active_booking_per_patient_session",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Token {self.token_no} · {self.session}"
