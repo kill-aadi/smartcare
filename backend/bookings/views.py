@@ -1,11 +1,13 @@
-"""Doctor dashboard pages: consulting sessions and today's live queue."""
+"""Doctor dashboard pages (sessions, today's live queue) and the hospital bookings page."""
+
+import datetime as dt
 
 from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
-from django.views.generic import FormView, TemplateView
+from django.views.generic import FormView, ListView, TemplateView
 
 from accounts.models import Role
 from bookings.forms import SessionForm
@@ -13,7 +15,7 @@ from bookings.models import Booking, BookingStatus
 from bookings.queue import call_next, complete_booking
 from bookings.services import create_session
 from core.exceptions import DomainError
-from dashboards.mixins import RoleRequiredMixin
+from dashboards.mixins import ApprovedHospitalRequiredMixin, RoleRequiredMixin
 
 
 class DoctorRequiredMixin(RoleRequiredMixin):
@@ -112,3 +114,29 @@ class CloseBookingView(QueuePanelView):
         except DomainError as error:
             return self.panel(booking.session, str(error))
         return self.panel(booking.session)
+
+
+# ---- Hospital: bookings across its doctors -----------------------------------------------------
+
+
+class HospitalBookingListView(ApprovedHospitalRequiredMixin, ListView):
+    template_name = "dashboards/hospital/bookings.html"
+    context_object_name = "bookings"
+
+    def get_date(self):
+        try:
+            return dt.date.fromisoformat(self.request.GET.get("date", ""))
+        except ValueError:
+            return timezone.localdate()
+
+    def get_queryset(self):
+        self.date = self.get_date()
+        return (
+            Booking.objects.filter(session__doctor__hospital=self.hospital, session__date=self.date)
+            .select_related("session__doctor", "patient__patient_profile")
+            .order_by("session__start_time", "session__doctor__name", "token_no")
+        )
+
+    def get_context_data(self, **kwargs):
+        kwargs["date"] = self.date
+        return super().get_context_data(**kwargs)

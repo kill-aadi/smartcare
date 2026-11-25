@@ -1,5 +1,6 @@
 from django.urls import include, path
 
+from bookings import views as booking_views
 from dashboards import views
 from doctors import views as doctor_views
 from hospitals.models import ApprovalStatus
@@ -67,6 +68,11 @@ urlpatterns = [
         "hospital/pharmacies/new/",
         pharmacy_views.HospitalPharmacyCreateView.as_view(),
         name="hospital-pharmacy-new",
+    ),
+    path(
+        "hospital/bookings/",
+        booking_views.HospitalBookingListView.as_view(),
+        name="hospital-bookings",
     ),
     path("doctor/", views.DoctorHomeView.as_view(), name="doctor-home"),
     path("doctor/", include("bookings.urls")),
