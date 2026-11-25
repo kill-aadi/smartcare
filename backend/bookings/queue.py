@@ -16,6 +16,10 @@ class NotToday(DomainError):
     code = "not_today"
 
 
+class CurrentNotClosed(DomainError):
+    code = "current_not_closed"
+
+
 @dataclass(frozen=True)
 class QueueStatus:
     token_no: int
@@ -39,6 +43,12 @@ def call_next(
     _require_own(doctor, session)
     if session.date != (today or timezone.localdate()):
         raise NotToday("You can only call patients on the day of the session.")
+    if session.bookings.filter(
+        token_no=session.current_token, status=BookingStatus.BOOKED
+    ).exists():
+        raise CurrentNotClosed(
+            f"Mark token {session.current_token} complete or no-show before calling the next one."
+        )
     next_booking = (
         session.bookings.filter(status=BookingStatus.BOOKED, token_no__gt=session.current_token)
         .order_by("token_no")
@@ -73,8 +83,11 @@ def mark_no_show(doctor: Doctor, booking: Booking) -> Booking:
     return _close(doctor, booking, BookingStatus.NO_SHOW)
 
 
-def queue_status(booking: Booking) -> QueueStatus:
-    """Where a booking stands in its session's queue. ETA is an estimate, never a promise."""
+def queue_status(booking: Booking, *, now: dt.datetime | None = None) -> QueueStatus:
+    """Where a booking stands in its session's queue. ETA is an estimate, never a promise.
+
+    A booking still waiting when its session has ended is "done": it will never be called.
+    """
     session = booking.session
     current = session.current_token
     if booking.status == BookingStatus.CANCELLED:
@@ -83,6 +96,8 @@ def queue_status(booking: Booking) -> QueueStatus:
         state = "done"
     elif booking.token_no == current:
         state = "now_serving"
+    elif session.is_past(now):
+        state = "done"
     else:
         state = "waiting"
     if state == "waiting":

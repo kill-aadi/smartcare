@@ -18,11 +18,14 @@
 - **The live queue:**
   - The doctor's **Today** page (`/dashboard/doctor/today/`) shows one card per session today: "Now serving N", the
     patient being seen, and the next five tokens.
-  - **Call next** jumps to the next *active* booking, skipping cancelled tokens.
+  - **Call next** jumps to the next *active* booking, skipping cancelled tokens. It refuses while the patient being
+    seen is still open ("Mark token 2 complete or no-show before calling the next one"), so no booking is left
+    half-finished.
   - **Mark consultation complete** and **No-show** close the current patient.
   - Each card refreshes itself every 5 seconds with HTMX, and every button swaps in a fresh card from the server.
 - **Queue status for the patient:** `queue_status()` returns token, current token, how many active bookings are
-  ahead, an ETA (tokens to go × average minutes) and a state: waiting, now_serving, done or cancelled.
+  ahead, an ETA (tokens to go × average minutes) and a state: waiting, now_serving, done or cancelled. A booking
+  whose session ended before it was called reports `done`, not a never-ending "~30 min".
 - **Simulated payments** (`payments` app):
   - `pay_booking()` creates a `Payment` with a `SIM-XXXXXXXXXXXX` reference and marks the booking paid.
   - A double tap gets 409 `already_paid`. See [ADR 0008](../adr/0008-simulated-payments.md).
@@ -65,8 +68,9 @@ token.
 **Then the doctor clicks "Call next":** the button does `hx-post` to `/dashboard/doctor/sessions/42/call-next/`.
 
 1. `CallNextView` looks the session up in `self.doctor.sessions`, so another doctor's session is a 404.
-2. `bookings.queue.call_next()` locks the session row and checks that it's this doctor's session and that it's today.
-   It then moves `current_token` to the smallest booked token above it.
+2. `bookings.queue.call_next()` locks the session row and checks that it's this doctor's session, that it's today,
+   and that the current patient has been marked complete or no-show. It then moves `current_token` to the smallest
+   booked token above it.
 3. The view renders `_queue_panel.html` alone (no page layout), and HTMX swaps it in place of the old card.
 4. Meanwhile the patient's app polls `GET /api/bookings/<id>/queue/` and sees, for example, `{"token_no": 5,
    "current_token": 3, "ahead": 1, "eta_minutes": 20, "state": "waiting"}`.

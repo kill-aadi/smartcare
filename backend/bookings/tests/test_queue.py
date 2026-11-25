@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from bookings.models import BookingStatus
 from bookings.queue import (
+    CurrentNotClosed,
     NotToday,
     QueueStatus,
     call_next,
@@ -32,7 +33,11 @@ def test_call_next_skips_cancelled_and_stops_when_nobody_is_left(session):
     two.status = BookingStatus.CANCELLED
     two.save()
 
-    called = [call_next(session.doctor, session, today=DAY) for _ in range(3)]
+    called = []
+    for _ in range(3):
+        called.append(call_next(session.doctor, session, today=DAY))
+        if called[-1]:
+            complete_booking(session.doctor, session.bookings.get(token_no=called[-1]))
 
     session.refresh_from_db()
     assert called == [1, 3, None]
@@ -44,6 +49,32 @@ def test_call_next_on_an_empty_session_changes_nothing(session):
 
     session.refresh_from_db()
     assert session.current_token == 0
+
+
+def test_call_next_refuses_while_the_current_patient_is_still_open(session):
+    _tokens(session, 1, 2)
+    call_next(session.doctor, session, today=DAY)
+
+    with pytest.raises(CurrentNotClosed):
+        call_next(session.doctor, session, today=DAY)
+
+    session.refresh_from_db()
+    assert session.current_token == 1
+
+
+@pytest.mark.parametrize("action", ["complete", "no_show", "cancel"])
+def test_call_next_moves_on_once_the_current_booking_is_closed(session, action):
+    first, _ = _tokens(session, 1, 2)
+    call_next(session.doctor, session, today=DAY)
+    if action == "complete":
+        complete_booking(session.doctor, first)
+    elif action == "no_show":
+        mark_no_show(session.doctor, first)
+    else:  # the patient cancelled after being called
+        first.status = BookingStatus.CANCELLED
+        first.save()
+
+    assert call_next(session.doctor, session, today=DAY) == 2
 
 
 def test_call_next_on_another_doctors_session_is_not_allowed(session):
@@ -133,6 +164,15 @@ def test_closed_booking_is_done(db, booking_status):
     assert _status_of(4, 4, status=booking_status).state == "done"
 
 
+def test_still_waiting_when_the_session_has_ended_is_done(db):
+    session = SessionFactory(current_token=2)
+    booking = BookingFactory(session=session, token_no=5)
+
+    status = queue_status(booking, now=session.ends_at())
+
+    assert (status.state, status.ahead, status.eta_minutes) == ("done", 0, 0)
+
+
 def test_cancelled_booking(db):
     assert _status_of(7, 4, status=BookingStatus.CANCELLED).state == "cancelled"
 
@@ -195,6 +235,16 @@ def test_call_next_over_htmx_returns_the_updated_panel(doctor_client, today_sess
     assert b"Now serving 1" in response.content
     today_session.refresh_from_db()
     assert today_session.current_token == 1
+
+
+def test_call_next_twice_shows_the_close_first_error(doctor_client, today_session):
+    url = f"/dashboard/doctor/sessions/{today_session.pk}/call-next/"
+    doctor_client.post(url)
+
+    response = doctor_client.post(url)
+
+    assert b"alert-danger" in response.content
+    assert b"Now serving 1" in response.content
 
 
 def test_complete_from_the_panel(doctor_client, today_session):
