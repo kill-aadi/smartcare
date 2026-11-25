@@ -1,11 +1,14 @@
 """factory_boy factories shared by every app's tests. All data is fictional."""
 
+import datetime as dt
 from decimal import Decimal
 
 import factory
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from accounts.models import Gender, PatientProfile, Role, User
+from bookings.models import ConsultingSession
 from doctors.models import Doctor, Specialization
 from hospitals.models import ApprovalStatus, Hospital
 from pharmacy.models import Pharmacy
@@ -74,6 +77,20 @@ class PharmacyFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"Test Pharmacy {n}")
     phone = "0487 111 1111"
     email = factory.LazyAttribute(lambda o: o.user.email)
+
+
+class SessionFactory(factory.django.DjangoModelFactory):
+    """A bookable session tomorrow (IST) with a visible doctor."""
+
+    class Meta:
+        model = ConsultingSession
+
+    doctor = factory.SubFactory(DoctorFactory)
+    date = factory.LazyFunction(lambda: timezone.localdate() + dt.timedelta(days=1))
+    start_time = dt.time(9, 0)
+    end_time = dt.time(12, 0)
+    fee = Decimal("300.00")
+    capacity = 20
 
 
 class PatientProfileFactory(factory.django.DjangoModelFactory):

@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from dashboards import views
 from doctors import views as doctor_views
@@ -69,5 +69,6 @@ urlpatterns = [
         name="hospital-pharmacy-new",
     ),
     path("doctor/", views.DoctorHomeView.as_view(), name="doctor-home"),
+    path("doctor/", include("bookings.urls")),
     path("pharmacy/", views.PharmacyHomeView.as_view(), name="pharmacy-home"),
 ]

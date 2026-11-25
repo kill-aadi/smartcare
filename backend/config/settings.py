@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "hospitals",
     "doctors",
     "pharmacy",
+    "bookings",
     "dashboards",
 ]
 
